@@ -64,7 +64,7 @@
 
 ### 0. 用你自己的开题报告自动生成提示词（推荐入口）
 
-模板自带的示例课题（居家养老）只是"演示皮肤"。**最省力的定制方式是把你的开题报告交给 Agent，让它自动生成属于你的 `prompts/system-prompt.md` 与 `AGENTS.md`**——完整作业单见 [`docs/customize-from-proposal.md`](docs/customize-from-proposal.md)。大致流程：
+模板自带的示例课题（居家养老）。**最省力的定制方式是把你的开题报告交给 Agent，让它自动生成属于你的 `prompts/system-prompt.md` 与 `AGENTS.md`**——完整作业单见 [`docs/customize-from-proposal.md`](docs/customize-from-proposal.md)。大致流程：
 
 1. 把你的开题报告（docx/pdf/md）放进项目根目录；
 2. 把作业单全文发给 Agent（Codex 或 DSH 均可），它会：通读开题报告 → 提取问题意识/理论工具/大纲/术语 → 按同构句式改写「底层学术画像」→ 写回 `prompts/system-prompt.md` 与 `AGENTS.md` → 输出定制报告；
