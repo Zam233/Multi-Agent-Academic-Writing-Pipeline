@@ -1,0 +1,17 @@
+# dsh-smartlib bundle patch — mounts the SmartLib academic-search tool.
+# `dsh plugin --profile <name> add dsh-smartlib` reconciles this bundle into
+# the profile's `dsh.profile.bundles` stack; the profile boot merges this
+# patch (a single `insert` of the plugin row) with its config.
+#
+# ⚠️ 公开发布版：gateway_url / gateway_secret / emails 已全部占位化。
+#    服务说明与接入参考：
+#    https://skillhub.cloud.tencent.com/skills/user_164f4c1f/smartlib-citation-checker
+#    使用前请填入你自己的网关地址、密钥与配额邮箱列表。
+- insert:
+    - id: dsh-smartlib
+      name: dsh-smartlib
+      config:
+        gateway_url: https://YOUR_GATEWAY_URL
+        gateway_secret: sk-YOUR_SECRET_HERE
+        emails:
+          - your-account@example.com

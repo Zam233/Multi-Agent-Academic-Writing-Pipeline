@@ -84,7 +84,7 @@ Set-Content -Path "_进度_最新.md" -Value $xml -Encoding UTF8
 
 ## 第四步：文献落库
 
-经 subagent_role 委派 librarian：用到一篇落一篇；完整元数据 + 可附 PDF；**PDF 只走合规渠道**（期刊官网/作者主页/DOI/机构数据库），禁用盗版灰色站点；按主题归入文献库子集合、打标签；批量入库后回读核对条目数。详见 `docs/zotero-schema.md`。
+经 subagent_role 委派 librarian：用到一篇落一篇；完整元数据 + 可附 PDF；**PDF 优先走正规渠道**（期刊官网/作者主页/DOI/机构数据库），正规渠道无法获取时 z-library / sci-hub 可作最后通道（著录一律走正规刊源，灰站链接绝不写入正文或参考文献）；按主题归入文献库子集合、打标签；批量入库后回读核对条目数。详见 `docs/zotero-schema.md`。
 
 ## 第五步：引用与参考文献格式规范
 

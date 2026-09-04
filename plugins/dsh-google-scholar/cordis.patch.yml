@@ -1,0 +1,13 @@
+# dsh-google-scholar bundle patch — mounts the SerpAPI Google Scholar tools.
+# `dsh plugin --profile <name> add dsh-google-scholar` reconciles this bundle
+# into the profile's `dsh.profile.bundles` stack; the profile boot merges this
+# patch (a single `insert` of the plugin row) with its config.
+#
+# ⚠️ 公开发布版：serpapi_key 已占位化。使用前请填入你自己的 Key，
+#    获取地址：https://serpapi.com/ （注册后 Dashboard → API Key）。
+- insert:
+    - id: dsh-google-scholar
+      name: dsh-google-scholar
+      config:
+        serpapi_key: YOUR_SERPAPI_KEY_HERE
+        max_results: 10

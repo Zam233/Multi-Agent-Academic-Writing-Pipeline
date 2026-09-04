@@ -52,15 +52,25 @@
 ├── docs/
 │   ├── workflow.md             # 全流程协议（第〇步～第五步）
 │   ├── roles-matrix.md         # 角色职责速查 + 模型路由建议
-│   └── zotero-schema.md        # 文献库分类集合设计示例
+│   ├── zotero-schema.md        # 文献库分类集合设计示例
+│   └── customize-from-proposal.md  # 用开题报告自动定制提示词的作业单
+├── plugins/                    # 学术检索插件（DeepSeek Harness 版）
+│   ├── dsh-google-scholar/     # Google Scholar 检索（SerpAPI）
+│   └── dsh-smartlib/           # SmartLib 中文期刊检索（CNKI/万方/维普）
 └── examples/                   # 一次写作任务的输入输出样例（虚构演示）
 ```
 
 ## Quickstart
 
-下面给出两种主流 Agent 环境下的快速启动方式。无论哪种，第一步都相同：
+### 0. 用你自己的开题报告自动生成提示词（推荐入口）
 
-> **0. 定制模板**：阅读 `prompts/system-prompt.md`，把其中 `<...>` 占位符（研究主题、用户称呼、论文文件名、文献库集合键等）替换为你的真实信息；再按你自己的课题改写「研究课题的底层学术画像」段（替换课题时的同构写法已写在括号里）。`docs/workflow.md` 是你要遵循的完整工作协议。
+模板自带的示例课题（居家养老）只是"演示皮肤"。**最省力的定制方式是把你的开题报告交给 Agent，让它自动生成属于你的 `prompts/system-prompt.md` 与 `AGENTS.md`**——完整作业单见 [`docs/customize-from-proposal.md`](docs/customize-from-proposal.md)。大致流程：
+
+1. 把你的开题报告（docx/pdf/md）放进项目根目录；
+2. 把作业单全文发给 Agent（Codex 或 DSH 均可），它会：通读开题报告 → 提取问题意识/理论工具/大纲/术语 → 按同构句式改写「底层学术画像」→ 写回 `prompts/system-prompt.md` 与 `AGENTS.md` → 输出定制报告；
+3. 按作业单末尾的「人工复核清单」检查一遍即可。
+
+> 若暂不开题报告（或想先跑通流程），可先用模板自带的示例课题练手，或手工替换 `<...>` 占位符（研究主题、用户称呼、论文文件名、文献库集合键等）。`docs/workflow.md` 是你要遵循的完整工作协议。
 
 ### 方式 A：OpenAI Codex（CLI / IDE）
 
@@ -68,7 +78,7 @@ Codex 会自动读取项目根目录的 `AGENTS.md` 作为项目级指令，也�
 
 **A1. 最小启动（单代理 + AGENTS.md）**——不引入子代理，主对话按流水线"扮演"各角色：
 
-1. 将 `prompts/system-prompt.md` 的全部内容（定制后）写入项目根目录 `AGENTS.md`；
+1. 将 `prompts/system-prompt.md` 的全部内容（定制后，可由第 0 步自动生成）写入项目根目录 `AGENTS.md`；
 2. 在项目目录启动 `codex`（或 `codex exec`），直接下达第一个写作指令，例如：
    > 请按 AGENTS.md 中定义的工作协议，先派"规划专家"角色为第三章第二节做写作规划，交我确认。
 3. 之后每步由主代理按协议依次切换规划/写作/审计视角执行，审计通过后再交付。
@@ -79,22 +89,28 @@ Codex 会自动读取项目根目录的 `AGENTS.md` 作为项目级指令，也�
 2. 将 `prompts/system-prompt.md`（定制后）写入项目根 `AGENTS.md`，并在其中写明流水线与角色分工速查表（第〇步～第五步）；
 3. 在 Codex 中按流水线委派子代理：规划阶段派 planner → 等你确认 → 写作阶段派 writer → 审计阶段派 auditor，审计未过则退回 writer 修订，循环至通过。
 
+**A3. 检索插件（Codex 版）**：本仓库的 `plugins/` 为 DeepSeek Harness 插件格式，不适用于 Codex。在 Codex 中使用 Google Scholar / SmartLib 检索时，把对应插件的语义交给 Codex，让它**重写为 Codex 的代码版工具**——读取 `plugins/*/lib/index.js` 理解调用逻辑、读取 `cordis.patch.yml` 理解配置字段；密钥用环境变量注入，不写死在代码中。两个插件的「移植到 Codex」说明已写在各插件自己的 README 里。
+
 > 提示：Codex 读取项目指令与自定义指令的机制见 [AGENTS.md 说明](https://learn.chatgpt.com/docs/agent-configuration/agents-md) 与 [Codex CLI Custom Instructions](https://mintlify.wiki/openai/codex/advanced/custom-instructions)。若你的环境不支持 subagent_role 类工具，用 A1 即可跑通完整流程。
 
 ### 方式 B：DeepSeek Harness（DSH）
 
 DSH 原生支持角色路由：把模板装进 `.dsh/prompt.md`，七个角色经 subagent_role 委派，模型绑定在 settings.yaml 统一配置。推荐完整启用：
 
-1. **装入主提示词**：在项目根目录建 `.dsh/prompt.md`，将定制后的 `prompts/system-prompt.md` 全文写入（DSH 会把它作为该项目的系统提示词加载）；
+1. **装入主提示词**：在项目根目录建 `.dsh/prompt.md`，将定制后的 `prompts/system-prompt.md` 全文写入（DSH 会把它作为该项目的系统提示词加载；定制稿可由第 0 步自动生成）；
 2. **绑定模型路由**：在 settings.yaml 中为七个角色绑定 provider/model（按 `docs/roles-matrix.md` 的档位建议配置，可参考相关 [dsh 子代理角色插件](https://github.com/SeverusZh/dsh-plugin-subagent-director) 的做法）；
-3. **开始写作**：在 DSH 会话中直接下达写作指令（如"帮我把第三章大纲扩写成一节正文"），主代理会按 system-prompt 的协议自动调用 subagent_role 委派各角色——规划 → 等你确认 → 成文 → 审计 → 一致性/盲审把关 → 文献落库；
-4. **文献落库**：若需接入 Zotero，按 `docs/zotero-schema.md` 建立集合结构，librarian 角色负责落库与核验。
+3. **安装检索插件**：把 `plugins/` 下的 `dsh-google-scholar` 与 `dsh-smartlib` 放入你的插件目录，然后**直接让 DSH 的 AI 帮你安装与配置**（告诉它"安装 plugins 目录下的两个学术检索插件"即可，它会执行 `dsh plugin` 命令并提示你补配置）——
+   - Google Scholar 插件需要 SerpAPI Key：到 <https://serpapi.com/> 注册获取（插件内 `serpapi_key` 字段）；
+   - SmartLib 插件需要网关地址与配额邮箱，服务说明参考 <https://skillhub.cloud.tencent.com/skills/user_164f4c1f/smartlib-citation-checker>（插件内 `gateway_url` / `gateway_secret` / `emails` 字段）；
+   - 手动安装命令见各插件 README：`dsh plugin --profile web add link:...`；
+4. **开始写作**：在 DSH 会话中直接下达写作指令（如"帮我把第三章大纲扩写成一节正文"），主代理会按 system-prompt 的协议自动调用 subagent_role 委派各角色——规划 → 等你确认 → 成文 → 审计 → 一致性/盲审把关 → 文献落库；
+5. **文献落库**：若需接入 Zotero，按 `docs/zotero-schema.md` 建立集合结构，librarian 角色负责落库与核验。
 
 > 提示：模型绑定是宿主环境配置，不在提示词内硬编码——主代理不得自行指定模型，统一由 settings.yaml 绑定，一处切换、全局生效。
 
 ## 定制到其他学科
 
-把 `system-prompt.md` 中「研究课题的底层学术画像」整段替换即可：
+把 `system-prompt.md` 中「研究课题的底层学术画像」整段替换即可（或直接用第 0 步的开题报告自动生成）：
 
 ```
 核心问题意识： 批判现有研究只停留在「外部机制」层面 → 攻克「微观机制」：
@@ -105,4 +121,4 @@ DSH 原生支持角色路由：把模板装进 `.dsh/prompt.md`，七个角色�
 
 ## 许可
 
-[CC BY-NC-SA 4.0](LICENSE)（署名—非商业性使用—相同方式共享）。prompts/、docs/、examples/ 全部文本均适用。
+[CC BY-NC-SA 4.0](LICENSE)（署名—非商业性使用—相同方式共享）。prompts/、docs/、examples/、plugins/ 全部内容均适用。插件代码中如引用了第三方服务的接口语义（SerpAPI、SmartLib/SkillHub），相关权利归原服务方所有。
