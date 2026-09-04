@@ -1,0 +1,23 @@
+# ---- 论文与草稿（不纳入版本控制）----
+*.docx
+*.doc
+*.pdf
+*.pptx
+*.wps
+开题/
+
+# ---- 本地配置与密钥（绝不提交）----
+.claude/
+settings*.local.json
+*.local.json
+.env
+.env.*
+
+# ---- 文献库导出与中间产物（_ 前缀为工作快照）----
+_zotero_items/
+_*/
+
+# ---- 系统与编辑器 ----
+.DS_Store
+Thumbs.db
+node_modules/
