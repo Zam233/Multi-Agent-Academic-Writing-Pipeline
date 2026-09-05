@@ -60,7 +60,7 @@
 | # | 确认项 | 默认建议 |
 |---|---|---|
 | 1.1 | 宿主环境：Codex（方式 A）还是 DeepSeek Harness（方式 B）？可两者都装 | 用户有 DSH 则优先 B；否则 A |
-| 1.2 | 是否有开题报告文件（docx/pdf/md）？有则走"自动定制"，无则"占位符手工定制" | 有开题报告最省力 |
+| 1.2 | 课题信息从哪来？三选一：① 有开题报告文件（docx/pdf/md）→ 阶段 3A 自动定制；② 无报告但可现场回答问题 → 阶段 3B 访谈式定制；③ 都不想提供 → 阶段 3C demo 课题先部署 | 有开题报告最省力；①②③ 均不中断部署 |
 | 1.3 | 论文正文文件：用户将使用哪个 docx 作为主文件？文件当前是否被 Word 占用？ | 建议命名 `论文.docx` 放项目根 |
 | 1.4 | 文献库：是否需要 Zotero 集成？插件用 Google Scholar / SmartLib 是否需要 API Key？ | 可后补，先部署骨架 |
 
@@ -77,31 +77,36 @@ cd ".\my-thesis"
 
 ✅ 验收：目录含 `prompts/` `docs/` `scripts/` `templates/` `demo/` `plugins/`；`pwd` 显示在项目根。
 
-## 阶段 3：定制系统提示词（二选一）
+## 阶段 3：定制系统提示词（三级路径，任何情形都不中断）
 
-### 3A. 有开题报告 → 自动定制（推荐）
+> 决策：有开题报告 → 3A（全自动）；无报告但对方愿回答问题 → 3B（访谈式，一问一答即可）；
+> 既无报告又不愿访谈 → 3C（demo 课题先跑通，日后换肤）。完整作业单见
+> [`docs/customize-from-proposal.md`](docs/customize-from-proposal.md)（含两种模式）。
 
-把开题报告文件放入项目根，然后**把 `docs/customize-from-proposal.md` 中的作业单全文**作为指令发给 Agent
-（或直接告诉 Agent："按 docs/customize-from-proposal.md 执行"）。Agent 将自动：
+### 3A. 有开题报告 → 自动定制（最省力）
+
+把开题报告文件放入项目根，然后**把 `docs/customize-from-proposal.md` 中的模式一作业单全文**作为指令发给 Agent
+（或直接告诉 Agent："按 docs/customize-from-proposal.md 模式一执行"）。Agent 将自动：
 
 1. 通读开题报告（docx 则先跑 `scripts/docx2md.ps1` 转 md）；
 2. 提取：研究主题、问题意识、理论框架、大纲结构、术语清单；
 3. 改写 `prompts/system-prompt.md` 的「底层学术画像」等占位段落（同构句式已写在模板括号内）；
 4. 把定制结果写入两份产物：项目根 `AGENTS.md`（方式 A 用）与 `prompts/system-prompt.md`。
 
-### 3B. 无开题报告 → 占位符手工定制
+### 3B. 无开题报告 → 访谈式定制（Agent 主动提问，无需任何文档）
 
-按下面的映射逐项替换 `prompts/system-prompt.md` 中的 `<占位符>`（Agent 可代查代改）：
+让 Agent 执行 `docs/customize-from-proposal.md` **模式二作业单**：它一次问 1 个问题（共约 10 个：
+题目/学科/批判的问题意识/理论框架/机制模型/章节/术语/语言篇幅/文件名/偏好），
+对方口头或打字回答即可；答不上来的项 Agent 按 demo 示例给出占位建议并标注"⚠️ 待确认"。
+问答结束 Agent 一次性完成与 3A 相同的改写与写回。
 
-| 占位符 | 替换为 |
-|---|---|
-| `<用户称呼>` | 你希望 Agent 对你的称呼（如"同学"） |
-| `<研究主题>` 段 | 你论文的题目与底层画像（问题意识/理论工具/大纲，句式见模板） |
-| `docs/roles-matrix.md` 档位 | 按你可用模型填写实际 provider/model |
-| `plugins/*/cordis.patch.yml` 密钥 | 你的 SerpAPI Key / SmartLib 网关（见阶段 5-B3） |
+### 3C. 既无开题报告又不愿访谈 → demo 课题先部署（兜底）
 
-✅ 验收：`Select-String -Path prompts/system-prompt.md -Pattern '<'` 仅剩允许的少量占位
-（如 `<研究课题>` 等）；通读一遍确认画像与你的课题一致。
+直接用模板自带的 demo 虚构课题完成部署（阶段 4-6 照常执行，冒烟测试用 demo 数据），
+整条流水线先验证可用；日后拿到课题信息，重跑 3A 或 3B 即可"换肤"，无需重新部署。
+
+✅ 验收（3A/3B/3C 通用）：`Select-String -Path prompts/system-prompt.md -Pattern '<'` 仅剩允许的少量占位
+（如 `<研究课题>` 等）；通读一遍确认画像与课题一致（3C 阶段允许为 demo 课题，标注待换肤）。
 
 ## 阶段 4：搭台账骨架（把 templates 复制到项目根）
 
