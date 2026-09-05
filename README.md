@@ -121,4 +121,4 @@ DSH 原生支持角色路由：把模板装进 `.dsh/prompt.md`，七个角色�
 
 ## 许可
 
-[CC BY-NC-SA 4.0](LICENSE)（署名—非商业性使用—相同方式共享）。prompts/、docs/、examples/、plugins/ 全部内容均适用。插件代码中如引用了第三方服务的接口语义（SerpAPI、SmartLib/SkillHub），相关权利归原服务方所有。
+[CC BY-SA 4.0](LICENSE)（署名—相同方式共享）。prompts/、docs/、examples/、plugins/ 全部内容均适用。插件代码中如引用了第三方服务的接口语义（SerpAPI、SmartLib/SkillHub），相关权利归原服务方所有。
