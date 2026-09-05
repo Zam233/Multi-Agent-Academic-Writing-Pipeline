@@ -6,9 +6,191 @@
 >
 > 本工具是**写作方法与流程的辅助框架**，不替代作者的独立研究与学术判断；使用 AI 辅助写作时请遵守所在机构的学术规范，并对最终文本负责。
 
-## 核心思想
+## 目录结构
 
-单代理一口气写论文的常见失败模式：缺少中期检查、文献不可信、风格前后漂移、交稿才发现论证漏洞。本模板把这些质量环节**外置为独立子代理**，形成互相制衡的流水线：
+```
+.
+├── prompts/
+│   ├── system-prompt.md        # 主系统提示词（模板，含 <占位符>）
+│   └── roles/                  # 七个子代理角色的独立 prompt
+│       ├── planner.md          # 规划专家
+│       ├── writer.md           # 成文专家
+│       ├── auditor.md          # 审计专家
+│       ├── librarian.md        # 文献管理员
+│       ├── consistency.md      # 术语与一致性审查（以 glossary.md 为基准）
+│       ├── blind-review.md     # 盲审预审
+│       └── steward.md          # 大纲与进度管家（维护 STATUS.md / 会话交接）
+├── docs/
+│   ├── workflow.md             # 全流程协议（第〇步～第五步）
+│   ├── session-recovery.md     # 跨会话恢复协议（长文写作不丢状态）
+│   ├── roles-matrix.md         # 角色职责速查 + 模型路由建议
+│   ├── zotero-schema.md        # 文献库分类集合设计示例
+│   └── customize-from-proposal.md  # 用开题报告自动定制提示词的作业单
+├── scripts/                    # 工具脚本（Windows PowerShell，须为 UTF-8 with BOM）
+│   ├── docx2md.ps1             # 第〇步：docx → markdown 进度快照
+│   └── citation-check.ps1      # 第五步：引用三对照机械核验（正文⇄文末）
+├── templates/                  # 部署产物模板（复制到"你的项目根目录"后替换占位符）
+│   ├── STATUS.md               # 进度台账（steward 维护）
+│   ├── glossary.md             # 术语与概念口径基准（consistency 的锚）
+│   ├── session-handoff.md      # 会话交接卡（每次会话结束前填写）
+│   ├── citation-audit.md       # 引用三对照人工核对单
+│   └── AGENTS.md               # Codex 项目指令（方式 A 的部署产物）
+├── demo/                       # 演示工作区：项目根目录"应该长什么样"（虚构课题）
+├── plugins/                    # 学术检索插件（DeepSeek Harness 版）
+│   ├── dsh-google-scholar/     # Google Scholar 检索（SerpAPI）
+│   └── dsh-smartlib/           # SmartLib 中文期刊检索（CNKI/万方/维普）
+└── examples/                   # 一次写作任务的输入输出样例（虚构演示）
+```
+
+---
+
+# 自动部署协议（AI 可执行版）
+
+> **给部署者（人或 AI Agent）的说明**：以下 6 个阶段可以**由 Agent 自动顺序执行**，也可人工照做。
+> 每阶段末尾有 **✅ 验收** 条件——满足后才进入下一阶段。本协议假定部署者为：
+> 一个能读写文件、执行 PowerShell 命令的 Agent（OpenAI Codex / DeepSeek Harness / Claude 均可），
+> 工作目录为 `项目根/`（即你要写论文的目录，本仓库内容将复制到其中）。
+>
+> 执行前请先通读第 1 阶段，向用户确认两个决策点，再开始执行。
+
+## 阶段 1：前置确认（需要用户拍板，先停下问清楚）
+
+部署开始前，必须向用户确认以下事项，**不得擅自假设**：
+
+| # | 确认项 | 默认建议 |
+|---|---|---|
+| 1.1 | 宿主环境：Codex（方式 A）还是 DeepSeek Harness（方式 B）？可两者都装 | 用户有 DSH 则优先 B；否则 A |
+| 1.2 | 是否有开题报告文件（docx/pdf/md）？有则走"自动定制"，无则"占位符手工定制" | 有开题报告最省力 |
+| 1.3 | 论文正文文件：用户将使用哪个 docx 作为主文件？文件当前是否被 Word 占用？ | 建议命名 `论文.docx` 放项目根 |
+| 1.4 | 文献库：是否需要 Zotero 集成？插件用 Google Scholar / SmartLib 是否需要 API Key？ | 可后补，先部署骨架 |
+
+确认后，向用户说明你将执行：**复制模板 → 定制提示词 → 搭台账 → 装入宿主 → 冒烟测试**。
+
+## 阶段 2：复制本仓库为"项目根"
+
+```powershell
+# 在本仓库的上级目录执行：把整个仓库复制为项目根（示例名 my-thesis）
+Copy-Item -Recurse ".\Multi-Agent-Academic-Writing-Pipeline" ".\my-thesis"
+cd ".\my-thesis"
+# 若已有 git：移除模板仓库的 .git，按需重新 git init（或保留以便 fork 跟踪上游）
+```
+
+✅ 验收：目录含 `prompts/` `docs/` `scripts/` `templates/` `demo/` `plugins/`；`pwd` 显示在项目根。
+
+## 阶段 3：定制系统提示词（二选一）
+
+### 3A. 有开题报告 → 自动定制（推荐）
+
+把开题报告文件放入项目根，然后**把 `docs/customize-from-proposal.md` 中的作业单全文**作为指令发给 Agent
+（或直接告诉 Agent："按 docs/customize-from-proposal.md 执行"）。Agent 将自动：
+
+1. 通读开题报告（docx 则先跑 `scripts/docx2md.ps1` 转 md）；
+2. 提取：研究主题、问题意识、理论框架、大纲结构、术语清单；
+3. 改写 `prompts/system-prompt.md` 的「底层学术画像」等占位段落（同构句式已写在模板括号内）；
+4. 把定制结果写入两份产物：项目根 `AGENTS.md`（方式 A 用）与 `prompts/system-prompt.md`。
+
+### 3B. 无开题报告 → 占位符手工定制
+
+按下面的映射逐项替换 `prompts/system-prompt.md` 中的 `<占位符>`（Agent 可代查代改）：
+
+| 占位符 | 替换为 |
+|---|---|
+| `<用户称呼>` | 你希望 Agent 对你的称呼（如"同学"） |
+| `<研究主题>` 段 | 你论文的题目与底层画像（问题意识/理论工具/大纲，句式见模板） |
+| `docs/roles-matrix.md` 档位 | 按你可用模型填写实际 provider/model |
+| `plugins/*/cordis.patch.yml` 密钥 | 你的 SerpAPI Key / SmartLib 网关（见阶段 5-B3） |
+
+✅ 验收：`Select-String -Path prompts/system-prompt.md -Pattern '<'` 仅剩允许的少量占位
+（如 `<研究课题>` 等）；通读一遍确认画像与你的课题一致。
+
+## 阶段 4：搭台账骨架（把 templates 复制到项目根）
+
+```powershell
+Copy-Item templates\STATUS.md, templates\glossary.md, templates\session-handoff.md, templates\citation-audit.md -Destination .
+```
+
+✅ 验收：项目根出现 `STATUS.md` `glossary.md` `session-handoff.md` `citation-audit.md` 四个文件
+（templates/ 与 demo/ 内的同名文件保留不动）。这些文件**含真实课题信息，已被 .gitignore 排除，不会误推公开仓库**。
+
+## 阶段 5：装入宿主（按 1.1 的选择执行 A 或 B，可都做）
+
+### 方式 A：OpenAI Codex
+
+**A1. 放置 AGENTS.md（Codex 自动读取的项目指令）**
+
+- 若 3A 已生成 → 确认项目根 `AGENTS.md` 存在；
+- 若 3B → 把 `templates/AGENTS.md` 复制到项目根并替换 `<占位符>`：
+  ```powershell
+  Copy-Item templates\AGENTS.md AGENTS.md   # 然后编辑替换 <研究课题题目> 等
+  ```
+- AGENTS.md 会引导 Codex 读取 `prompts/system-prompt.md`、`prompts/roles/*.md`、`docs/workflow.md` 等。
+
+**A2.（可选增强）注册七个 Codex Subagents**
+
+参考 [Codex Subagents 官方文档](https://developers.openai.com/codex/subagents)，
+把 `prompts/roles/*.md` 的内容分别作为七个 subagent 的指令体（planner/writer/auditor/librarian/
+consistency/blind-review/steward），项目内建 `.codex/` 目录存放。
+
+**A3. 检索插件（Codex 版）**
+
+`plugins/` 是 DSH 插件格式，不适用于 Codex。需要检索时，让 Codex 读取 `plugins/*/lib/index.js`
+理解调用逻辑后**重写为 Codex 代码版工具**（密钥用环境变量，如 `SERPAPI_KEY`，不写死在代码中）。
+
+✅ 验收：项目根存在 `AGENTS.md` 且占位符已替换；（若做 A2）`.codex/` 下七个 subagent 定义齐全。
+在项目根运行 `codex`，应能按 AGENTS.md 开场白回应（steward 视角汇报状态）。
+
+### 方式 B：DeepSeek Harness（DSH）
+
+**B1. 装入主提示词**
+
+```powershell
+# 项目根建 .dsh 目录，把定制后的系统提示词装为 .dsh/prompt.md
+New-Item -ItemType Directory -Force .dsh | Out-Null
+Copy-Item prompts\system-prompt.md .dsh\prompt.md
+```
+
+**B2. 绑定模型路由**
+
+在 DSH 的 settings.yaml 中为七个角色绑定 provider/model（档位建议见 `docs/roles-matrix.md`；
+参考 [dsh-plugin-subagent-director](https://github.com/SeverusZh/dsh-plugin-subagent-director) 的做法）。
+
+**B3. 安装检索插件**
+
+把 `plugins/dsh-google-scholar` 与 `plugins/dsh-smartlib` 放入你的 DSH 插件目录
+（或直接让 DSH 的 AI 执行安装）。安装后补齐 `cordis.patch.yml` 的配置：
+
+- Google Scholar：`serpapi_key` ← 在 <https://serpapi.com/> 注册获取；
+- SmartLib：`gateway_url` / `gateway_secret` / `emails` ← 参考
+  <https://skillhub.cloud.tencent.com/skills/user_164f4c1f/smartlib-citation-checker>；
+- 手动安装：`dsh plugin --profile web add link:C:/<路径>/plugins/dsh-google-scholar`
+
+✅ 验收：`.dsh/prompt.md` 存在且为定制后内容；`dsh plugin list` 可见两插件；
+模型路由绑定无报错。在 DSH 中打开项目目录，会话应加载 `.dsh/prompt.md` 并按协议工作。
+
+## 阶段 6：冒烟测试（验证部署成功）
+
+按宿主执行以下最小任务，确认流水线关键闸门可用：
+
+1. **脚本自测**（Windows）：在项目根执行
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\docx2md.ps1 -DocxPath "论文.docx"
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\citation-check.ps1 -TextPath demo\第三章第二节_正文.md
+   ```
+   预期：前者输出快照（若 docx 被占用会提示解锁），后者报告"机械核对通过"。
+2. **流水线自测**：给主代理一条指令，如：
+   > 请先按 session-recovery 协议汇报当前进度，然后为"大纲中第一个待写小节"做一份写作规划，交我确认。
+   
+   预期响应结构：① 先读 STATUS/glossary/handoff 汇报状态（steward 视角）→ ② 产出规划报告 →
+   ③ **停下等待用户确认**（不得直接开写）。若 Agent 未经确认直接写正文，视为部署失败，需重装提示词。
+
+✅ 全部通过 = 部署完成。日常使用请遵循 `docs/workflow.md`；每次新会话按 `docs/session-recovery.md` 恢复。
+
+---
+
+## 核心思想（为什么这么设计）
+
+单代理一口气写论文的常见失败模式：缺少中期检查、文献不可信、风格前后漂移、交稿才发现论证漏洞。
+本模板把这些质量环节**外置为独立子代理**，形成互相制衡的流水线：
 
 ```
 用户指令
@@ -32,114 +214,13 @@
 
 - **用户确认是硬闸门**：规划不通过，绝不动笔；审计不通过，绝不交付——质量把关不在主代理的"自觉"，而在流程结构。
 - **交叉验证**：规划者、写作者、审计者是不同视角的不同角色，避免"自己写自己审"的同温层。
-- **滚动一致性**：每节完成后与"此前全部已写章节"做术语/口径比对（consistency），以及滚动盲审预审（blind-review），专治章节间论点断裂。
-- **文献全链路**：规划检索 → 写作引用 → 独立核验落库，正文引用与文献库条目一一对应，避免"编造文献"与"引注失配"。
-
-## 目录结构
-
-```
-.
-├── prompts/
-│   ├── system-prompt.md        # 主系统提示词（模板，含 <占位符>）
-│   └── roles/                  # 七个子代理角色的独立 prompt
-│       ├── planner.md          # 规划专家
-│       ├── writer.md           # 成文专家
-│       ├── auditor.md          # 审计专家
-│       ├── librarian.md        # 文献管理员
-│       ├── consistency.md      # 术语与一致性审查（以 glossary.md 为基准）
-│       ├── blind-review.md     # 盲审预审
-│       └── steward.md          # 大纲与进度管家（维护 STATUS.md / 会话交接）
-├── docs/
-│   ├── workflow.md             # 全流程协议（第〇步～第五步）
-│   ├── session-recovery.md     # 跨会话恢复协议（长文写作不丢状态）
-│   ├── roles-matrix.md         # 角色职责速查 + 模型路由建议
-│   ├── zotero-schema.md        # 文献库分类集合设计示例
-│   └── customize-from-proposal.md  # 用开题报告自动定制提示词的作业单
-├── scripts/                    # 工具脚本
-│   ├── docx2md.ps1             # 第〇步：docx → markdown 进度快照
-│   └── citation-check.ps1      # 第五步：引用三对照机械核验（正文⇄文末）
-├── templates/                  # 项目根目录台账模板（拷到项目根使用）
-│   ├── STATUS.md               # 进度台账（steward 维护）
-│   ├── glossary.md             # 术语与概念口径基准（consistency 的锚）
-│   ├── session-handoff.md      # 会话交接卡（每次会话结束前填写）
-│   └── citation-audit.md       # 引用三对照人工核对单
-├── demo/                       # 演示工作区：项目根目录"应该长什么样"（虚构课题）
-│   ├── STATUS.md / glossary.md / session-handoff.md
-│   ├── 大纲.md / 第三章第二节_正文.md
-├── plugins/                    # 学术检索插件（DeepSeek Harness 版）
-│   ├── dsh-google-scholar/     # Google Scholar 检索（SerpAPI）
-│   └── dsh-smartlib/           # SmartLib 中文期刊检索（CNKI/万方/维普）
-└── examples/                   # 一次写作任务的输入输出样例（虚构演示）
-```
-
-## Quickstart
-
-### 0. 用你自己的开题报告自动生成提示词（推荐入口）
-
-模板自带的示例课题（居家养老）。**最省力的定制方式是把你的开题报告交给 Agent，让它自动生成属于你的 `prompts/system-prompt.md` 与 `AGENTS.md`**——完整作业单见 [`docs/customize-from-proposal.md`](docs/customize-from-proposal.md)。大致流程：
-
-1. 把你的开题报告（docx/pdf/md）放进项目根目录；
-2. 把作业单全文发给 Agent（Codex 或 DSH 均可），它会：通读开题报告 → 提取问题意识/理论工具/大纲/术语 → 按同构句式改写「底层学术画像」→ 写回 `prompts/system-prompt.md` 与 `AGENTS.md` → 输出定制报告；
-3. 按作业单末尾的「人工复核清单」检查一遍即可。
-
-> 若暂不开题报告（或想先跑通流程），可先用模板自带的示例课题练手，或手工替换 `<...>` 占位符（研究主题、用户称呼、论文文件名、文献库集合键等）。`docs/workflow.md` 是你要遵循的完整工作协议。
-
-### 0.5 搭好项目根目录的工作区骨架（长文写作不塌的前提）
-
-流水线不是只靠提示词跑，还要靠项目根目录的一组"台账工件"承载状态。**开始写作前**，把 `templates/` 下的四个模板拷到项目根目录：
-
-```
-项目根/
-├── STATUS.md            # 进度台账：哪些章节已写/已审/待写（steward 每次任务前后更新）
-├── glossary.md          # 术语口径基准：译名与概念定义的唯一权威（consistency 审查的依据）
-├── session-handoff.md   # 会话交接卡：每次会话结束前填写，下次会话由此恢复
-├── <论文>.docx          # 论文正文主文件
-└── 各章节.md             # 已交付正文
-```
-
-- 不确定"填好长什么样"？看 [`demo/`](demo/)——那是一套已运行若干节的虚构课题工作区，直接照抄结构；
-- 不知道"何时更新哪个文件"？读 [`docs/session-recovery.md`](docs/session-recovery.md)（跨会话恢复协议）与 [`docs/workflow.md`](docs/workflow.md)；
-- 工具脚本就绪：第〇步转进度快照用 `scripts/docx2md.ps1`，第五步引用核验用 `scripts/citation-check.ps1`。
-
-### 方式 A：OpenAI Codex（CLI / IDE）
-
-Codex 会自动读取项目根目录的 `AGENTS.md` 作为项目级指令，也支持通过 subagents 定义角色化子代理。两种粒度任选：
-
-**A1. 最小启动（单代理 + AGENTS.md）**——不引入子代理，主对话按流水线"扮演"各角色：
-
-1. 将 `prompts/system-prompt.md` 的全部内容（定制后，可由第 0 步自动生成）写入项目根目录 `AGENTS.md`；
-2. 在项目目录启动 `codex`（或 `codex exec`），直接下达第一个写作指令，例如：
-   > 请按 AGENTS.md 中定义的工作协议，先派"规划专家"角色为第三章第二节做写作规划，交我确认。
-3. 之后每步由主代理按协议依次切换规划/写作/审计视角执行，审计通过后再交付。
-
-**A2. 完整启动（Codex Subagents）**——把七个角色注册为真正的子代理：
-
-1. 参考官方文档 [Codex Subagents](https://developers.openai.com/codex/subagents)，在项目的 `.codex/` 下为七个角色各建一个 subagent 定义（把 `prompts/roles/*.md` 的内容作为各角色的指令体）；
-2. 将 `prompts/system-prompt.md`（定制后）写入项目根 `AGENTS.md`，并在其中写明流水线与角色分工速查表（第〇步～第五步）；
-3. 在 Codex 中按流水线委派子代理：规划阶段派 planner → 等你确认 → 写作阶段派 writer → 审计阶段派 auditor，审计未过则退回 writer 修订，循环至通过。
-
-**A3. 检索插件（Codex 版）**：本仓库的 `plugins/` 为 DeepSeek Harness 插件格式，不适用于 Codex。在 Codex 中使用 Google Scholar / SmartLib 检索时，把对应插件的语义交给 Codex，让它**重写为 Codex 的代码版工具**——读取 `plugins/*/lib/index.js` 理解调用逻辑、读取 `cordis.patch.yml` 理解配置字段；密钥用环境变量注入，不写死在代码中。两个插件的「移植到 Codex」说明已写在各插件自己的 README 里。
-
-> 提示：Codex 读取项目指令与自定义指令的机制见 [AGENTS.md 说明](https://learn.chatgpt.com/docs/agent-configuration/agents-md) 与 [Codex CLI Custom Instructions](https://mintlify.wiki/openai/codex/advanced/custom-instructions)。若你的环境不支持 subagent_role 类工具，用 A1 即可跑通完整流程。
-
-### 方式 B：DeepSeek Harness（DSH）
-
-DSH 原生支持角色路由：把模板装进 `.dsh/prompt.md`，七个角色经 subagent_role 委派，模型绑定在 settings.yaml 统一配置。推荐完整启用：
-
-1. **装入主提示词**：在项目根目录建 `.dsh/prompt.md`，将定制后的 `prompts/system-prompt.md` 全文写入（DSH 会把它作为该项目的系统提示词加载；定制稿可由第 0 步自动生成）；
-2. **绑定模型路由**：在 settings.yaml 中为七个角色绑定 provider/model（按 `docs/roles-matrix.md` 的档位建议配置，可参考相关 [dsh 子代理角色插件](https://github.com/SeverusZh/dsh-plugin-subagent-director) 的做法）；
-3. **安装检索插件**：把 `plugins/` 下的 `dsh-google-scholar` 与 `dsh-smartlib` 放入你的插件目录，然后**直接让 DSH 的 AI 帮你安装与配置**（告诉它"安装 plugins 目录下的两个学术检索插件"即可，它会执行 `dsh plugin` 命令并提示你补配置）——
-   - Google Scholar 插件需要 SerpAPI Key：到 <https://serpapi.com/> 注册获取（插件内 `serpapi_key` 字段）；
-   - SmartLib 插件需要网关地址与配额邮箱，服务说明参考 <https://skillhub.cloud.tencent.com/skills/user_164f4c1f/smartlib-citation-checker>（插件内 `gateway_url` / `gateway_secret` / `emails` 字段）；
-   - 手动安装命令见各插件 README：`dsh plugin --profile web add link:...`；
-4. **开始写作**：在 DSH 会话中直接下达写作指令（如"帮我把第三章大纲扩写成一节正文"），主代理会按 system-prompt 的协议自动调用 subagent_role 委派各角色——规划 → 等你确认 → 成文 → 审计 → 一致性/盲审把关 → 文献落库；
-5. **文献落库**：若需接入 Zotero，按 `docs/zotero-schema.md` 建立集合结构，librarian 角色负责落库与核验。
-
-> 提示：模型绑定是宿主环境配置，不在提示词内硬编码——主代理不得自行指定模型，统一由 settings.yaml 绑定，一处切换、全局生效。
+- **滚动一致性**：每节完成后与"此前全部已写章节"及 `glossary.md` 做术语/口径比对，专治章节间论点断裂。
+- **文献全链路**：规划检索 → 写作引用 → 独立核验落库 → 交付前三对照核验，杜绝"编造文献"与"引注失配"。
+- **台账承载状态**：STATUS/glossary/handoff 三件套 + 跨会话恢复协议，6-8 万字长文写作不丢状态、不漂口径。
 
 ## 定制到其他学科
 
-把 `system-prompt.md` 中「研究课题的底层学术画像」整段替换即可（或直接用第 0 步的开题报告自动生成）：
+把 `prompts/system-prompt.md` 中「研究课题的底层学术画像」整段替换即可（或走阶段 3A 自动定制）：
 
 ```
 核心问题意识： 批判现有研究只停留在「外部机制」层面 → 攻克「微观机制」：
@@ -150,4 +231,5 @@ DSH 原生支持角色路由：把模板装进 `.dsh/prompt.md`，七个角色�
 
 ## 许可
 
-[CC BY-SA 4.0](LICENSE)（署名—相同方式共享）。prompts/、docs/、examples/、plugins/ 全部内容均适用。插件代码中如引用了第三方服务的接口语义（SerpAPI、SmartLib/SkillHub），相关权利归原服务方所有。
+[CC BY-SA 4.0](LICENSE)（署名—相同方式共享）。prompts/、docs/、examples/、plugins/ 全部内容均适用。
+插件代码中如引用了第三方服务的接口语义（SerpAPI、SmartLib/SkillHub），相关权利归原服务方所有。

@@ -17,6 +17,21 @@ settings*.local.json
 _zotero_items/
 _*/
 
+# ---- 部署产物（项目根目录运行时生成；含真实课题信息，绝不提交）----
+# 注意：以下模式仅匹配"项目根目录"（模板/示例目录内的同名文件不受影响，
+# 如 templates/STATUS.md、demo/glossary.md 仍正常入库）。
+/STATUS.md
+/glossary.md
+/session-handoff.md
+/citation-audit.md
+/AGENTS.md
+/_论文进度_*.md
+/_进度_*.md
+/大纲.md
+/绪论.md
+/*第*章*.md
+/*节*.md
+
 # ---- 系统与编辑器 ----
 .DS_Store
 Thumbs.db
