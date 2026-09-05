@@ -36,7 +36,11 @@ $body = $lines[0..($refStart - 1)] -join "`n"
 $refBlock = if ($refStart -lt $lines.Count) { $lines[$refStart..($lines.Count - 1)] -join "`n" } else { "" }
 
 # --- 提取编号 ---
-$citeNums = [regex]::Matches($body, '\[(\d{1,3})\]') | ForEach-Object { [int]$_.Groups[1].Value }
+# 支持 [n]、[n][m]、[n-m]（连续引用简写，GB/T 7714）三种形态
+$citeNums = [regex]::Matches($body, '\[(\d{1,3}(?:-\d{1,3})?)\]') | ForEach-Object {
+    $tok = $_.Groups[1].Value
+    if ($tok -match '^(\d{1,3})-(\d{1,3})$') { [int]$Matches[1]..[int]$Matches[2] } else { [int]$tok }
+}
 $refNums  = [regex]::Matches($refBlock, '^\[(\d{1,3})\]', [System.Text.RegularExpressions.RegexOptions]::Multiline) |
             ForEach-Object { [int]$_.Groups[1].Value }
 $refNums  = @($refNums | Select-Object -Unique)
