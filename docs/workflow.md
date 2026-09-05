@@ -5,7 +5,7 @@
 ## 流水线总览
 
 ```
-第〇步 同步进度（docx → markdown 快照）
+第〇步 状态恢复（STATUS/glossary/handoff）＋ 同步进度（docx2md 快照）
    ↓
 第一步 独立规划（planner）──▶ 用户确认（硬性闸门，未确认不进入写作）
    ↓
@@ -14,38 +14,42 @@
 第三步 独立审计（auditor）──▶ 通过？── 否 ──▶ 退回 writer 修订，循环
    │ 通过
    ▼
-   ├─ 术语与一致性审查（consistency，对照此前全部章节）
+   ├─ 术语与一致性审查（consistency，以 glossary.md 为基准）
    ├─ 盲审预审（blind-review，滚动，按需触发）
    ▼
 第四步 文献落库（librarian，用到一篇落一篇）
    ↓
-第五步 交付（顺序编码制 [n] 引注 + GB/T 7714—2015 参考文献）
+第五步 交付（[n] 引注 + GB/T 7714 + citation-check 三对照核验）
 ```
 
-## 第〇步：写作前同步论文进度
+## 第〇步：写作前同步论文进度（状态恢复 + docx 快照）
 
-主代理无法直接阅读 .docx（二进制压缩包）。收到写作指令、进入独立规划前必须先做 docx → markdown 转换并通读最新进度。
+主代理无法直接阅读 .docx（二进制压缩包）。收到写作指令、进入独立规划前必须：**先恢复跨会话状态**（见 `docs/session-recovery.md`：读 STATUS.md → glossary.md → session-handoff.md），再做 docx → markdown 转换并通读最新进度。
 
-**转换命令模板**（PowerShell，工作目录 = 项目目录）：
+**转换命令**（PowerShell，工作目录 = 项目目录）：
 
 ```powershell
+# 推荐：调用仓库脚本（自动定位 docx、同名取最新、处理占用）
+powershell -ExecutionPolicy Bypass -File scripts/docx2md.ps1 -DocxPath "论文文件.docx"
+
+# 备选：手工模板
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [System.IO.Compression.ZipFile]::OpenRead("<论文文件.docx>")
 $e = $zip.Entries | Where-Object { $_.FullName -eq "word/document.xml" }
 $r = New-Object System.IO.StreamReader($e.Open()); $xml = $r.ReadToEnd(); $r.Close(); $zip.Dispose()
 $xml = $xml -replace '</w:p>', "`n" -replace '<[^>]+>', ''
 $xml = $xml -replace '&amp;','&' -replace '&lt;','<' -replace '&gt;','>' -replace '&quot;','"' -replace '&apos;',"'"
-Set-Content -Path "_进度_最新.md" -Value $xml -Encoding UTF8
+Set-Content -Path "_论文进度_最新.md" -Value $xml -Encoding UTF8
 ```
 
 要点：
 
-- 同名文件可能存在于多个目录时，取 LastWriteTime 更新的那份（先 Get-ChildItem -Recurse -Filter 定位全部候选）；
+- 同名文件可能存在于多个目录时，取 LastWriteTime 更新的那份（docx2md.ps1 已内置该逻辑）；
 - 文件被 Word/OneDrive 锁定（PermissionError）时，改从可读副本提取；
 - 转换后必须通读快照：哪些章节已写、哪些待写、标题编号有无变动；
 - 以对话粘贴为准、以 docx 校对，避免两头不一致；
 - 转换失败则如实说明，请用户粘贴相关章节文本替代；
-- 进度与大纲状态由 steward 维护。
+- 进度与大纲状态由 steward 维护（写入 STATUS.md）；术语口径以 glossary.md 为基准；会话结束前 steward 填写 session-handoff.md（模板均在 templates/）。
 
 ## 第一步：写作前独立规划
 
@@ -79,7 +83,7 @@ Set-Content -Path "_进度_最新.md" -Value $xml -Encoding UTF8
 
 审计通过后、交付前另有两道滚动把关：
 
-- **consistency（术语与一致性）**：与该节此前所有已写章节做口径比对（术语译名、概念定义、论点口径、章节编号标题），输出差异清单，冲突退回 writer 修正后复检；
+- **consistency（术语与一致性）**：以项目根目录 glossary.md 为基准，与该节此前所有已写章节做口径比对（术语译名、概念定义、论点口径、章节编号标题），输出差异清单，冲突退回 writer 修正后复检；首次定义的新术语须登记进 glossary.md；
 - **blind-review（盲审预审，按需）**：对本小节及此前全部章节做滚动预审（空洞套话、论证跳步、章节失衡、跨章断裂、术语误用），按严重度输出问题清单，重大问题退回修正。
 
 ## 第四步：文献落库
@@ -91,5 +95,6 @@ Set-Content -Path "_进度_最新.md" -Value $xml -Encoding UTF8
 - 正文一律顺序编码制 `[n]`（上标），编号按首次出现顺序，重复引用沿用原编号；引用处必须直接标注编号（紧跟作者名或直接引文右引号之后），不得用作者名引注代替；
 - 参考文献按 GB/T 7714—2015：期刊 `[J]` / 专著 `[M]` / 书章 `[M]//` / 学位论文 `[D]`；
 - 卷期页码能查就补全，查不到注明"（卷期/页码待核验）"，**不得杜撰**；
-- 外文人名与术语译名全文统一，不得混用；
-- 每条参考文献都能在文献库找到对应条目，与正文编号一一对应。
+- 外文人名与术语译名全文统一，不得混用（以 glossary.md 为准）；
+- 每条参考文献都能在文献库找到对应条目，与正文编号一一对应；
+- **交付前跑引用三对照**：`powershell -ExecutionPolicy Bypass -File scripts/citation-check.ps1 -TextPath <章节.md>` 完成机械核对（正文⇄文末），再人工对照文献库（核对单模板 `templates/citation-audit.md`）。

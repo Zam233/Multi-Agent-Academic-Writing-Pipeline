@@ -46,14 +46,26 @@
 │       ├── writer.md           # 成文专家
 │       ├── auditor.md          # 审计专家
 │       ├── librarian.md        # 文献管理员
-│       ├── consistency.md      # 术语与一致性审查
+│       ├── consistency.md      # 术语与一致性审查（以 glossary.md 为基准）
 │       ├── blind-review.md     # 盲审预审
-│       └── steward.md          # 大纲与进度管家
+│       └── steward.md          # 大纲与进度管家（维护 STATUS.md / 会话交接）
 ├── docs/
 │   ├── workflow.md             # 全流程协议（第〇步～第五步）
+│   ├── session-recovery.md     # 跨会话恢复协议（长文写作不丢状态）
 │   ├── roles-matrix.md         # 角色职责速查 + 模型路由建议
 │   ├── zotero-schema.md        # 文献库分类集合设计示例
 │   └── customize-from-proposal.md  # 用开题报告自动定制提示词的作业单
+├── scripts/                    # 工具脚本
+│   ├── docx2md.ps1             # 第〇步：docx → markdown 进度快照
+│   └── citation-check.ps1      # 第五步：引用三对照机械核验（正文⇄文末）
+├── templates/                  # 项目根目录台账模板（拷到项目根使用）
+│   ├── STATUS.md               # 进度台账（steward 维护）
+│   ├── glossary.md             # 术语与概念口径基准（consistency 的锚）
+│   ├── session-handoff.md      # 会话交接卡（每次会话结束前填写）
+│   └── citation-audit.md       # 引用三对照人工核对单
+├── demo/                       # 演示工作区：项目根目录"应该长什么样"（虚构课题）
+│   ├── STATUS.md / glossary.md / session-handoff.md
+│   ├── 大纲.md / 第三章第二节_正文.md
 ├── plugins/                    # 学术检索插件（DeepSeek Harness 版）
 │   ├── dsh-google-scholar/     # Google Scholar 检索（SerpAPI）
 │   └── dsh-smartlib/           # SmartLib 中文期刊检索（CNKI/万方/维普）
@@ -71,6 +83,23 @@
 3. 按作业单末尾的「人工复核清单」检查一遍即可。
 
 > 若暂不开题报告（或想先跑通流程），可先用模板自带的示例课题练手，或手工替换 `<...>` 占位符（研究主题、用户称呼、论文文件名、文献库集合键等）。`docs/workflow.md` 是你要遵循的完整工作协议。
+
+### 0.5 搭好项目根目录的工作区骨架（长文写作不塌的前提）
+
+流水线不是只靠提示词跑，还要靠项目根目录的一组"台账工件"承载状态。**开始写作前**，把 `templates/` 下的四个模板拷到项目根目录：
+
+```
+项目根/
+├── STATUS.md            # 进度台账：哪些章节已写/已审/待写（steward 每次任务前后更新）
+├── glossary.md          # 术语口径基准：译名与概念定义的唯一权威（consistency 审查的依据）
+├── session-handoff.md   # 会话交接卡：每次会话结束前填写，下次会话由此恢复
+├── <论文>.docx          # 论文正文主文件
+└── 各章节.md             # 已交付正文
+```
+
+- 不确定"填好长什么样"？看 [`demo/`](demo/)——那是一套已运行若干节的虚构课题工作区，直接照抄结构；
+- 不知道"何时更新哪个文件"？读 [`docs/session-recovery.md`](docs/session-recovery.md)（跨会话恢复协议）与 [`docs/workflow.md`](docs/workflow.md)；
+- 工具脚本就绪：第〇步转进度快照用 `scripts/docx2md.ps1`，第五步引用核验用 `scripts/citation-check.ps1`。
 
 ### 方式 A：OpenAI Codex（CLI / IDE）
 
