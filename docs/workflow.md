@@ -24,7 +24,7 @@
    ▼
 第四步 文献落库（librarian，用到一篇落一篇）
    ↓
-第五步 交付（引注 + 参考文献 + citation-check 三对照核验）
+第五步 交付（引注 + 参考文献 + citation-check 三对照核验 + word-count 篇幅核验）
 ```
 
 ## 第〇步：写作前读模式配置 + 同步稿件进度
@@ -150,6 +150,30 @@ Set-Content -Path "_进度_最新.md" -Value $xml -Encoding UTF8
 - **交付前跑引用三对照**：
   `powershell -ExecutionPolicy Bypass -File scripts/citation-check.ps1 -TextPath <文件.md> -Style <numbered|author-date>`
   完成机械核对（正文 ⇄ 文末），再人工对照文献库（核对单模板 `templates/citation-audit.md`）。
+
+## 篇幅核验（三模式均须做，口径不同）
+
+**字数必须机械核验，不得靠模型自估**——模型不会真的计数，而三个模式的篇幅纪律都依赖它。
+
+```powershell
+# 期刊论文模式：硬上限（超限在编辑初审即被拦）
+powershell -ExecutionPolicy Bypass -File scripts/word-count.ps1 -TextPath "稿件_v3.md" -Limit 12000 -ExcludeRef
+
+# 课程论文模式：区间（超上限不加分，低于下限扣分）
+powershell -ExecutionPolicy Bypass -File scripts/word-count.ps1 -TextPath "课程论文.md" -Min 3000 -Max 5000 -ExcludeRef
+
+# 学位论文模式：逐章统计，与字数预算表比对
+powershell -ExecutionPolicy Bypass -File scripts/word-count.ps1 -TextPath "." -Pattern "第*章*.md" -ExcludeRef
+```
+
+| 模式 | 参数 | 判定 |
+|---|---|---|
+| degree-thesis | 不给配额，逐章统计后与预算表比对 | 累计偏差 >20% 须上报用户 |
+| journal-article | `-Limit <word_limit_hard>` | 超限即"需修订"；占用 ≥95% 给预警（返修最易超限） |
+| course-paper | `-Min -Max <区间>` | 超出区间即不合格；规划时取中下位 |
+
+> 注：`-ExcludeRef` 对应"参考文献不计"的常见口径；是否含摘要/图表题注以目标刊或学校的规定为准。
+> 脚本为机械口径，与对方系统的统计可能略有差异，**以对方系统为准**。
 
 ## 各模式的差异对照（同一条流水线，不同的标准）
 

@@ -51,6 +51,7 @@
 │   └── customize-from-proposal.md  # 用开题报告自动定制提示词的作业单
 ├── scripts/                    # 工具脚本（Windows PowerShell，须为 UTF-8 with BOM）
 │   ├── docx2md.ps1             # 第〇步：docx → markdown 进度快照（三模式通用）
+│   ├── word-count.ps1          # 篇幅纪律：字数统计与配额核验（-Limit 硬上限 / -Min -Max 区间）
 │   └── citation-check.ps1      # 第五步：引用三对照机械核验（-Style numbered|author-date）
 ├── templates/                  # 部署产物模板（复制到"你的项目根目录"后替换占位符）
 │   ├── MODE.md                 # 【最先复制】写作模式配置（所有角色的唯一口径来源）
@@ -226,15 +227,21 @@ Copy-Item prompts\system-prompt.md .dsh\prompt.md
 1. **脚本自测**（Windows）：在项目根执行
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\docx2md.ps1 -DocxPath "论文.docx"
+   # 字数配额核验（须与 MODE.md 的 target_length / word_limit_hard 一致）：
+   #   期刊模式（硬上限）：
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\word-count.ps1 -TextPath demo\journal-article\稿件_v3_节选.md -Limit 12000 -ExcludeRef
+   #   课程模式（区间）：
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\word-count.ps1 -TextPath demo\course-paper\课程论文_正文.md -Min 3000 -Max 5000 -ExcludeRef
    # 引注核验须与 MODE.md 的 citation_style 一致：
    #   numeric 模式（学位论文/部分期刊）：
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\citation-check.ps1 -TextPath demo\degree-thesis\第三章第二节_正文.md -Style numbered
    #   author-date 模式（课程论文/部分社科期刊）：
    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\citation-check.ps1 -TextPath demo\course-paper\课程论文_正文.md -Style author-date
    ```
-   预期：前者输出快照（若 docx 被占用会提示解锁）；后者报告"机械核对通过"。
-   > ⚠️ 两个脚本须为 **UTF-8 with BOM**，否则 Windows PowerShell 5.1 会按 ANSI 解析中文而报语法错。
-   > 校验：`node -e "const fs=require('node:fs');const b=fs.readFileSync('scripts/citation-check.ps1');console.log(b[0]===0xEF&&b[1]===0xBB&&b[2]===0xBF?'BOM 正常':'BOM 缺失')"`
+   预期：`docx2md` 输出快照（若 docx 被占用会提示解锁）；`word-count` 报出字数与配额判定
+   （课程样例会**如实报"低于下限"**——它是压缩版示例）；`citation-check` 报告"机械核对通过"。
+   > ⚠️ `scripts/` 下的三个脚本须为 **UTF-8 with BOM**，否则 Windows PowerShell 5.1 会按 ANSI 解析中文而报语法错。
+   > 校验：`node -e "const fs=require('node:fs');for(const f of ['scripts/docx2md.ps1','scripts/word-count.ps1','scripts/citation-check.ps1']){const b=fs.readFileSync(f);console.log((b[0]===0xEF&&b[1]===0xBB&&b[2]===0xBF?'OK  ':'缺失'),f)}"`
 2. **模式自测**：让主代理读 `MODE.md` 并复述"本项目模式 / 档位 / 字数标准 / 引注体系 / 评审口径"。
    预期：五项全部答对，且**不把其他模式的标准混进来**。若答错或含糊，视为模式配置未生效，需检查 MODE.md 与提示词装载。
 3. **流水线自测**：给主代理一条指令，如：

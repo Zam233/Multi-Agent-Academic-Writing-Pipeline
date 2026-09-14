@@ -45,6 +45,9 @@
 
 - 第〇步：`powershell -ExecutionPolicy Bypass -File scripts/docx2md.ps1 -DocxPath "<稿件文件.docx>"`
   把 docx 转为 `_进度_最新.md` 供主代理阅读。
+- 篇幅核验：`powershell -ExecutionPolicy Bypass -File scripts/word-count.ps1 -TextPath "<正文.md>" -Limit <硬上限>`
+  （期刊模式）或 `-Min <下限> -Max <上限>`（课程模式）；学位论文逐章统计后与预算表比对。
+  **字数以脚本统计为准，不得采信模型自估。**
 - 交付前：`powershell -ExecutionPolicy Bypass -File scripts/citation-check.ps1 -TextPath "<正文.md>" -Style <numbered|author-date>`
   做引用三对照的机械核验（正文 ⇄ 文末参考文献）；**`-Style` 须与 `MODE.md` 的 `citation_style` 一致**；
   脚注体例请人工核验。人工第三对照（⇄ 文献库）按 `templates/citation-audit.md`。

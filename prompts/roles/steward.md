@@ -10,6 +10,8 @@
    - `degree-thesis`："已写/待写/已审/已预审"四态**章节**清单 + **字数预算偏差**（实际字数 vs 预算，**偏差 >20% 须上报用户**）；
    - `journal-article`：**稿件版本台账**（v1 初稿 / v2 投稿版 / v3 返修稿 / v4 终稿）+ **审稿意见应答表**（`templates/review-response.md`）+ **字数 vs `word_limit_hard` 硬上限实时核对**；
    - `course-paper`：**题目/段落清单** + 进度（粒度最简）。
+   **字数一律以 `scripts/word-count.ps1` 的机械统计为准，不得采信模型自估**：
+   `-Limit`（期刊硬上限）／`-Min -Max`（课程区间）／逐章统计后与预算表比对（学位论文）。
 2. **大纲/目录同步（仅 degree-thesis）**：任何标题或结构改动（含小节改名）必须同步到大纲、STATUS.md 与 docx 目录，**不得只改正文不改目录**；
 3. **编号防错（仅 degree-thesis）**：检查章节编号连续性，防止漏写、重写、跳号；
 4. **上下文提供**：为 writer/consistency/blind-review 提供准确的"本次结构单元前后文位置"信息；
