@@ -1,42 +1,52 @@
-﻿# docx2md.ps1 — 第〇步工具：把学位论文 docx 转为 markdown 进度快照
+﻿# docx2md.ps1 — 第〇步工具：把稿件 docx 转为 markdown 进度快照
 #
+# 不预设论文类型：学位论文 / 期刊论文 / 课程论文三种模式均适用。
 # 用法：
-#   powershell -ExecutionPolicy Bypass -File scripts/docx2md.ps1 -DocxPath "毕业论文.docx"
-#   powershell -ExecutionPolicy Bypass -File scripts/docx2md.ps1 -DocxPath "毕业论文.docx" -OutPath "_进度_最新.md"
+#   powershell -ExecutionPolicy Bypass -File scripts/docx2md.ps1 -DocxPath "论文.docx"
+#   powershell -ExecutionPolicy Bypass -File scripts/docx2md.ps1 -DocxPath "论文.docx" -OutPath "_进度_最新.md"
+#   powershell -ExecutionPolicy Bypass -File scripts/docx2md.ps1 -Pattern "稿件*.docx"
 #
 # 行为：
 #   - 解出 word/document.xml，按 </w:p> 分段、剥离 XML 标签、解码实体
 #   - 同名 docx 存在于多个目录时，取 LastWriteTime 更新的那份
+#   - 未指定 -DocxPath 时，按 -Pattern（默认 *.docx）在工作目录递归查找并取最新
 #   - 文件被占用（PermissionError）时提示从可读副本提取
-#   - 默认输出 _论文进度_最新.md（工作区约定名）
+#   - 默认输出 _进度_最新.md（工作区约定名，见 docs/session-recovery.md）
 #
-# 用法（PowerShell）：
-#   .\scripts\docx2md.ps1 -DocxPath "论文.docx"
+# 注意：本文件须保存为 UTF-8 with BOM，否则 Windows PowerShell 5.1 会按 ANSI 解析中文而报错。
+# 校验/修复：node -e "const fs=require('node:fs');const f='scripts/docx2md.ps1';const b=fs.readFileSync(f);if(!(b[0]===0xEF&&b[1]===0xBB&&b[2]===0xBF)){fs.writeFileSync(f,Buffer.concat([Buffer.from([0xEF,0xBB,0xBF]),b]));console.log('BOM 已补')}else{console.log('BOM 正常')}"
 
 param(
     [Parameter(Mandatory = $false)]
     [string]$DocxPath = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$OutPath = "_论文进度_最新.md"
+    [string]$OutPath = "_进度_最新.md",
+
+    [Parameter(Mandatory = $false)]
+    [string]$Pattern = "*.docx"
 )
 
 $ErrorActionPreference = "Stop"
 
-# --- 定位 docx：显式路径 > 目录内同名文件（取最新）> 工作区递归搜索 ---
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
+
+# --- 定位 docx：显式路径 > 目录内同名文件（取最新）> 按 -Pattern 递归搜索取最新 ---
 function Resolve-Docx {
-    param([string]$Path)
+    param([string]$Path, [string]$SearchPattern)
     if ($Path -and (Test-Path $Path)) { return (Get-Item $Path) }
     if ($Path) {
         $cands = Get-ChildItem -Path . -Recurse -Filter $Path -File -ErrorAction SilentlyContinue
         if ($cands) { return ($cands | Sort-Object LastWriteTime -Descending | Select-Object -First 1) }
     }
-    $cands = Get-ChildItem -Path . -Recurse -Filter "毕业论文*.docx" -File -ErrorAction SilentlyContinue
+    # 未指定或未命中：按 Pattern 递归查找（排除临时文件）
+    $cands = Get-ChildItem -Path . -Recurse -Filter $SearchPattern -File -ErrorAction SilentlyContinue |
+             Where-Object { $_.Name -notlike '~$*' }
     if ($cands) { return ($cands | Sort-Object LastWriteTime -Descending | Select-Object -First 1) }
-    throw "未找到 docx 文件：请用 -DocxPath 显式指定，或确认工作目录内存在论文 docx。"
+    throw "未找到 docx 文件：请用 -DocxPath 显式指定，或用 -Pattern 指定匹配式（当前：$SearchPattern）。"
 }
 
-$docx = Resolve-Docx -Path $DocxPath
+$docx = Resolve-Docx -Path $DocxPath -SearchPattern $Pattern
 Write-Host "使用文件: $($docx.FullName)（LastWriteTime: $($docx.LastWriteTime)）"
 
 # --- 解包 document.xml ---

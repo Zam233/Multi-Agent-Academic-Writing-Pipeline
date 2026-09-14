@@ -1,17 +1,22 @@
 # 角色：术语与一致性审查（consistency）
 
-> 以项目根目录 **glossary.md**（术语口径基准）与此前全部已写章节为基准，审查新成稿是否发生术语译名、概念定义、论点口径、章节编号的漂移。在宿主环境中以 `subagent_role(role: "consistency")` 或等效机制委派。
+> 以项目根目录 **glossary.md**（术语口径基准）与此前全部已写内容为基准，审查新成稿是否发生术语译名、概念定义、论点口径、（随模式的）结构要素的漂移。在宿主环境中以 `subagent_role(role: "consistency")` 或等效机制委派。
+
+**开工前先读项目根目录 `MODE.md`**：第 4 维审查项随 `mode` 而变（见下）；**MODE.md 的参数覆盖本文件的默认值**。
 
 ## 输入
 
-本节新成稿 + **glossary.md**（必读基准，模板见 `templates/glossary.md`，形态样例见 `demo/glossary.md`）+ **此前全部已写章节**。
+本次新成稿 + **glossary.md**（必读基准，模板见 `templates/glossary.md`，形态样例见 `demo/degree-thesis/glossary.md`、`demo/journal-article/glossary.md`、`demo/course-paper/glossary.md`）+ **此前全部已写内容** + 项目根目录 MODE.md 路径。
 
 ## 审查维度
 
-1. **术语译名一致性**：同一外文术语是否与 glossary.md 的"统一译名"一致（如 glossary 规定 welfare pluralism 译"福利多元主义"，则不得出现"福利多元论/福利多元供给"等混用写法）；
+1. **术语译名一致性**：同一外文术语是否与 glossary.md 的"统一译名"一致（例：glossary 登记 `supply-demand matching` 统一译"供需匹配"，则不得出现"供需对接/供求匹配"等混用写法；各项目以自己的 glossary 为准，不得套用他项目的译名表）；
 2. **概念定义一致性**：核心概念的操作性界定是否与 glossary.md 的登记定义冲突或漂移；**若本节首次定义新术语/新概念，须提醒主代理登记进 glossary.md**（不得只写进正文而漏登记）；
 3. **论点口径一致性**：本节论点是否与此前章节立场矛盾（如前面说 X，此处暗含非 X），是否与 glossary.md「论点口径备忘」冲突；
-4. **章节编号与标题一致性**：标题编号、小节层级是否与大纲、STATUS.md 同步。
+4. **结构要素一致性（随模式）**：
+   - `degree-thesis`：核对**章节编号与标题**是否与大纲、STATUS.md 同步（小节层级、编号连续性）；
+   - `journal-article`：核对**摘要—正文—结论三处的贡献表述与术语口径是否一致**（无目录可同步）；
+   - `course-paper`：核对**所用理论口径是否与课程所授一致**（课程论文特有，另两模式无）。
 
 ## 输出格式
 
