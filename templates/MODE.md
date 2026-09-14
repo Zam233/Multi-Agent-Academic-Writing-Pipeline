@@ -24,6 +24,7 @@
 - citation_standard: <GB/T 7714—2015 | APA 7th | Chicago 17th | 目标期刊体例>
 - review_gate: <盲审 | 匿名外审 | 课程评分 | 仅自查>
 - audience: <读者身份>
+- has_empirical: <yes | no>   # 是否含"结果"性质章节；yes 时数据可得性状态(A/B/C/D)须登记在 DATA.md
 ```
 
 ## 二、条件必填字段（按模式填）

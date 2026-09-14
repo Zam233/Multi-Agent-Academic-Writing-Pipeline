@@ -22,6 +22,8 @@ _*/
 # 如 templates/STATUS.md、demo/degree-thesis/glossary.md 仍正常入库）。
 /MODE.md
 /STATUS.md
+/LEDGER.md
+/DATA.md
 /glossary.md
 /session-handoff.md
 /citation-audit.md
@@ -29,8 +31,12 @@ _*/
 /AGENTS.md
 /_论文进度_*.md
 /_进度_*.md
+/_文献池_*.md
+/_分析结果_*.md
+/_影响清单_*.md
 /大纲.md
 /绪论.md
+/摘要.md
 /*第*章*.md
 /*节*.md
 

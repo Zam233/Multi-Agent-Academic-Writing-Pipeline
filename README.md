@@ -35,16 +35,19 @@
 │   └── course-paper.md         # 模式 3：课程论文
 ├── prompts/
 │   ├── system-prompt.md        # 主系统提示词（模板，含 <占位符>；不预设学科与模式）
-│   └── roles/                  # 七个子代理角色的独立 prompt
+│   └── roles/                  # 八个子代理角色的独立 prompt
 │       ├── planner.md          # 规划专家
 │       ├── writer.md           # 成文专家
 │       ├── auditor.md          # 审计专家（第 4 维随模式改写）
-│       ├── librarian.md        # 文献管理员
-│       ├── consistency.md      # 术语与一致性审查（以 glossary.md 为基准）
+│       ├── analyst.md          # 数据分析员（实证单元专用；与 librarian 对称）
+│       ├── librarian.md        # 文献管理员（含 DOI 有效性核验）
+│       ├── consistency.md      # 术语/一致性审查（第 5 维：测量与数据一致性）
 │       ├── blind-review.md     # 评审预审（按模式模拟盲审专家/匿名审稿人/任课教师）
 │       └── steward.md          # 结构与进度管家（台账粒度随模式）
 ├── docs/
 │   ├── workflow.md             # 全流程协议（第〇步～第五步）+ 三模式差异对照
+│   ├── data-pipeline.md        # 实证数据环节（数据可得性闸门/数据台账/结果落盘/测量口径）
+│   ├── rewrite-protocol.md     # 改写协议与跨章依赖传播（改了这里，还有哪里要改）
 │   ├── session-recovery.md     # 跨会话恢复协议（长文写作不丢状态）
 │   ├── roles-matrix.md         # 角色职责速查 + 角色×模式对照 + 模型路由建议
 │   ├── zotero-schema.md        # 文献库分类集合设计示例
@@ -52,10 +55,18 @@
 ├── scripts/                    # 工具脚本（Windows PowerShell，须为 UTF-8 with BOM）
 │   ├── docx2md.ps1             # 第〇步：docx → markdown 进度快照（三模式通用）
 │   ├── word-count.ps1          # 篇幅纪律：字数统计与配额核验（-Limit 硬上限 / -Min -Max 区间）
-│   └── citation-check.ps1      # 第五步：引用三对照机械核验（-Style numbered|author-date）
+│   ├── citation-check.ps1      # 第五步：引用三对照机械核验（-Style numbered|author-date）
+│   ├── check-figures.ps1       # 摘要自足性/结构化要素 + 图表编号引用完整性
+│   ├── verify-doi.ps1          # DOI 有效性三级核验（格式/可解析/Crossref 元数据比对）
+│   └── ledger-impact.ps1       # 改写影响分析：跨章依赖传播（依赖 LEDGER.md）
 ├── templates/                  # 部署产物模板（复制到"你的项目根目录"后替换占位符）
 │   ├── MODE.md                 # 【最先复制】写作模式配置（所有角色的唯一口径来源）
 │   ├── STATUS.md               # 进度台账（三模式的台账形态各有一节）
+│   ├── LEDGER.md               # 论点与依赖台账（改写传播的依据）
+│   ├── DATA.md                 # 数据台账（变量与测量口径；见 templates/data-ledger.md）
+│   ├── data-ledger.md          # 数据台账模板（复制为 DATA.md）
+│   ├── results.md              # 分析结果落盘模板（复制为 _分析结果_最新.md）
+│   ├── abstract.md             # 摘要与关键词（三模式体例 + 自检清单）
 │   ├── glossary.md             # 术语与概念口径基准（consistency 的锚）
 │   ├── session-handoff.md      # 会话交接卡（每次会话结束前填写）
 │   ├── citation-audit.md       # 引用三对照人工核对单（多引注体系）
@@ -181,7 +192,7 @@ Copy-Item templates\STATUS.md, templates\glossary.md, templates\session-handoff.
 **A2.（可选增强）注册七个 Codex Subagents**
 
 参考 [Codex Subagents 官方文档](https://developers.openai.com/codex/subagents)，
-把 `prompts/roles/*.md` 的内容分别作为七个 subagent 的指令体（planner/writer/auditor/librarian/
+把 `prompts/roles/*.md` 的内容分别作为八个 subagent 的指令体（planner/writer/auditor/analyst/librarian/
 consistency/blind-review/steward），项目内建 `.codex/` 目录存放。
 
 **A3. 检索插件（Codex 版）**
@@ -189,7 +200,7 @@ consistency/blind-review/steward），项目内建 `.codex/` 目录存放。
 `plugins/` 是 DSH 插件格式，不适用于 Codex。需要检索时，让 Codex 读取 `plugins/*/lib/index.js`
 理解调用逻辑后**重写为 Codex 代码版工具**（密钥用环境变量，如 `SERPAPI_KEY`，不写死在代码中）。
 
-✅ 验收：项目根存在 `AGENTS.md` 且占位符已替换；（若做 A2）`.codex/` 下七个 subagent 定义齐全。
+✅ 验收：项目根存在 `AGENTS.md` 且占位符已替换；（若做 A2）`.codex/` 下八个 subagent 定义齐全。
 在项目根运行 `codex`，应能按 AGENTS.md 开场白回应（steward 视角汇报"当前模式 + 状态"）。
 
 ### 方式 B：DeepSeek Harness（DSH）
@@ -204,7 +215,7 @@ Copy-Item prompts\system-prompt.md .dsh\prompt.md
 
 **B2. 绑定模型路由**
 
-在 DSH 的 settings.yaml 中为七个角色绑定 provider/model（档位建议见 `docs/roles-matrix.md`，
+在 DSH 的 settings.yaml 中为八个角色绑定 provider/model（档位建议见 `docs/roles-matrix.md`，
 含**按模式调整资源投入**的建议；参考 [dsh-plugin-subagent-director](https://github.com/SeverusZh/dsh-plugin-subagent-director) 的做法）。
 
 **B3. 安装检索插件**
@@ -240,8 +251,16 @@ Copy-Item prompts\system-prompt.md .dsh\prompt.md
    ```
    预期：`docx2md` 输出快照（若 docx 被占用会提示解锁）；`word-count` 报出字数与配额判定
    （课程样例会**如实报"低于下限"**——它是压缩版示例）；`citation-check` 报告"机械核对通过"。
-   > ⚠️ `scripts/` 下的三个脚本须为 **UTF-8 with BOM**，否则 Windows PowerShell 5.1 会按 ANSI 解析中文而报语法错。
-   > 校验：`node -e "const fs=require('node:fs');for(const f of ['scripts/docx2md.ps1','scripts/word-count.ps1','scripts/citation-check.ps1']){const b=fs.readFileSync(f);console.log((b[0]===0xEF&&b[1]===0xBB&&b[2]===0xBF?'OK  ':'缺失'),f)}"`
+   ```powershell
+   # 摘要 + 图表编号（期刊样例摘要 270 字，应通过）
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-figures.ps1 -TextPath demo\journal-article\稿件_v3_节选.md -MaxAbstract 300 -AbstractSections "目的,方法,结果,结论"
+   # DOI 三级核验（离线即验证格式，联网另验可解析性）
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\verify-doi.ps1 -TextPath demo\journal-article\稿件_v3_节选.md -Offline
+   # 依赖台账自检（悬空引用 / 孤立论点 / 循环依赖）
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ledger-impact.ps1 -Ledger templates\LEDGER.md
+   ```
+   > ⚠️ `scripts/` 下的**全部脚本**须为 **UTF-8 with BOM**，否则 Windows PowerShell 5.1 会按 ANSI 解析中文而报语法错。
+   > 校验：`node -e "const fs=require('node:fs');for(const f of fs.readdirSync('scripts').filter(x=>x.endsWith('.ps1'))){const b=fs.readFileSync('scripts/'+f);console.log((b[0]===0xEF&&b[1]===0xBB&&b[2]===0xBF?'OK  ':'缺失'),f)}"`
 2. **模式自测**：让主代理读 `MODE.md` 并复述"本项目模式 / 档位 / 字数标准 / 引注体系 / 评审口径"。
    预期：五项全部答对，且**不把其他模式的标准混进来**。若答错或含糊，视为模式配置未生效，需检查 MODE.md 与提示词装载。
 3. **流水线自测**：给主代理一条指令，如：
@@ -274,9 +293,16 @@ Copy-Item prompts\system-prompt.md .dsh\prompt.md
                                      ▼               ▼               ▼
                               ┌───────────┐   ┌───────────┐   ┌───────────┐
                               │consistency│   │blind-review│  │ librarian │
-                              │术语一致性  │   │ 评审预审   │  │ 文献落库   │
+                              │术语+测量   │   │ 评审预审   │  │ 文献落库   │
                               └───────────┘   └───────────┘   └───────────┘
+
+前置（仅实证单元）：analyst —— 数据可得性闸门 / 结果落盘
+改写（非从零）：     ledger-impact.ps1 —— 依赖传播，算出还有哪些节要改
 ```
+
+**为什么是八个角色**：原先的七个角色覆盖了「文献 → 论证 → 写作」，
+但**没有任何角色负责数据**——含实证单元的稿件因此断在"结果章写不出来"或"硬编数据"。
+`analyst` 补上这一环，与 `librarian` 对称：一个管文献，一个管数据。
 
 设计要点：
 

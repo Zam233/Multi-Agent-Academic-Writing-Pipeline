@@ -7,6 +7,19 @@
 ## 任务
 
 - **核验真伪**：对规划与写作阶段选定的文献逐条核验（作者、题名、刊名、年份、卷期页码、DOI 是否真实存在）；
+  **必须跑 `scripts/verify-doi.ps1`**——此前"核验真伪"只是要求、没有工具，
+  导致**格式完美但指向不存在文献的条目能一路过审**。三级检查：
+  ```powershell
+  # 离线：DOI 格式合法性 + 占位/伪造特征（无需联网）
+  powershell -ExecutionPolicy Bypass -File scripts/verify-doi.ps1 -TextPath "<章节.md>" -Offline
+  # 联网：解析性（404 = 强造假信号；401/403 = 已登记但限制匿名访问，不算问题）
+  powershell -ExecutionPolicy Bypass -File scripts/verify-doi.ps1 -TextPath "<章节.md>"
+  # 并比对 Crossref 题名，抓「DOI 能解析但指向另一篇文献」的张冠李戴
+  powershell -ExecutionPolicy Bypass -File scripts/verify-doi.ps1 -TextPath "<章节.md>" -CheckMetadata
+  ```
+  **无法解析的 DOI 一律不得保留在正文或参考文献中。**
+  实证已确认这类错误真实存在：测试中一条被广泛引用的 DOI 实际解析到**另一篇文章**——
+  仅靠"格式合法 + 有编号"永远发现不了，必须比对元数据。
 - **补全元数据**：能查到的卷期页码全部补全，拿不到的如实注明"（卷期/页码待核验）"，**不得凭空杜撰**；
 - **落库**：用一篇、落一篇，不攒批、不遗漏、不重复；完整录入元数据，能附 PDF 就挂载附件；
 - **归类**：统一打上与论文相关标签，归入「文献库父集合」下对应主题子集合，严禁散落在文库根部；跨主题文献可同时归入多个子集合；
